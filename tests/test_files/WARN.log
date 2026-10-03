@@ -1,0 +1,30 @@
+2026-09-27 08:00:01 [INFO] app: startup complete, version 2.3.1
+2026-09-27 08:00:02 [INFO] db: connection pool initialized, size=10
+2026-09-27 08:04:12 [WARN] cache: redis latency 240ms, threshold 200ms
+2026-09-27 08:06:33 [INFO] api: /health returned 200
+2026-09-27 08:09:47 [WARN] db: slow query 2.1s, query_id=1123
+2026-09-27 08:12:18 [INFO] api: /orders returned 200, count=14
+2026-09-27 08:15:02 [WARN] cache: redis latency 310ms, threshold 200ms
+2026-09-27 08:18:44 [ERROR] db: query timeout after 30s, query_id=1201
+2026-09-27 08:19:01 [INFO] api: /orders returned 200, count=9
+2026-09-27 08:22:11 [WARN] disk: /var usage 72%, threshold 85%
+2026-09-27 08:25:33 [INFO] api: /checkout returned 200, order_id=5589
+2026-09-27 08:29:04 [WARN] cache: redis latency 260ms, threshold 200ms
+2026-09-27 08:31:47 [INFO] api: /health returned 200
+2026-09-27 08:34:22 [ERROR] api: /checkout returned 500, trace=3c9a1e
+2026-09-27 08:36:01 [INFO] api: /orders returned 200, count=21
+2026-09-27 08:39:15 [WARN] db: slow query 1.8s, query_id=1288
+2026-09-27 08:41:58 [INFO] api: /health returned 200
+2026-09-27 08:45:30 [WARN] mem: usage 78%, threshold 85%
+2026-09-27 08:48:12 [INFO] api: /orders returned 200, count=17
+2026-09-27 08:52:44 [INFO] api: /checkout returned 200, order_id=5590
+2026-09-27 08:55:03 [WARN] cache: redis latency 280ms, threshold 200ms
+2026-09-27 08:58:19 [INFO] api: /health returned 200
+2026-09-27 09:01:22 [INFO] db: connection pool healthy, active=3
+2026-09-27 09:04:47 [WARN] db: slow query 2.4s, query_id=1350
+2026-09-27 09:08:11 [INFO] api: /orders returned 200, count=11
+2026-09-27 09:12:33 [INFO] api: /health returned 200
+2026-09-27 09:15:55 [WARN] cache: redis latency 220ms, threshold 200ms
+2026-09-27 09:19:02 [INFO] api: /orders returned 200, count=8
+2026-09-27 09:22:41 [INFO] app: scheduled cleanup complete
+2026-09-27 09:25:18 [INFO] api: /health returned 200

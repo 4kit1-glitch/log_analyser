@@ -1,0 +1,25 @@
+2026-09-27 02:14:01 [INFO] app: startup complete, version 2.3.1
+2026-09-27 02:14:03 [INFO] db: connection pool initialized, size=10
+2026-09-27 02:15:12 [WARN] cache: redis latency 480ms, threshold 200ms
+2026-09-27 02:16:44 [ERROR] db: query timeout after 30s, query_id=8821
+2026-09-27 02:16:45 [ERROR] api: /orders returned 500, trace=4f2a1b
+2026-09-27 02:17:02 [ERROR] api: /orders returned 500, trace=9c8d2e
+2026-09-27 02:17:18 [ERROR] api: /orders returned 500, trace=1a3f7b
+2026-09-27 02:18:33 [CRITICAL] db: connection pool exhausted, active=10, waiting=47
+2026-09-27 02:18:34 [ERROR] api: /checkout returned 503, trace=77b1c0
+2026-09-27 02:19:01 [ERROR] api: /checkout returned 503, trace=2e4d88
+2026-09-27 02:19:55 [CRITICAL] disk: /var usage 96%, threshold 85%
+2026-09-27 02:20:10 [ERROR] app: failed to write session file, errno=28 (No space left on device)
+2026-09-27 02:20:11 [ERROR] app: failed to write session file, errno=28
+2026-09-27 02:20:12 [CRITICAL] app: session store unavailable, logging out all users
+2026-09-27 02:21:47 [ERROR] db: query timeout after 30s, query_id=9104
+2026-09-27 02:22:03 [CRITICAL] mem: usage 98%, OOM killer invoked, killed pid=4412 (python3)
+2026-09-27 02:22:15 [ERROR] api: /orders returned 500, trace=5b9e3c
+2026-09-27 02:23:40 [CRITICAL] db: replication lag 1820s, threshold 60s
+2026-09-27 02:24:02 [ERROR] api: /checkout returned 503, trace=8a2f44
+2026-09-27 02:25:11 [ERROR] app: unhandled exception in worker thread
+2026-09-27 02:25:12 [CRITICAL] app: worker pool crashed, 0/8 workers alive
+2026-09-27 02:26:30 [ERROR] db: query timeout after 30s, query_id=9320
+2026-09-27 02:27:44 [WARN] cache: redis latency 620ms, threshold 200ms
+2026-09-27 02:28:01 [ERROR] api: /orders returned 500, trace=1d6b9a
+2026-09-27 02:29:15 [CRITICAL] app: service degraded, returning 503 to all requests
