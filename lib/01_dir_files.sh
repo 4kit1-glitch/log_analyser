@@ -20,9 +20,13 @@ validate_dir() {
 
 get_log_files() {
     local directory="$1"
-    local -n arr_name="$2"
-    mapfile -t -d '' "$arr_name" < <(find "$directory" -mindepth 1 -type f  -name "*.log" -print0 2> /dev/null)
-    [[ ${#arr_name[@]} -eq 0 ]] && { inform "No file found in $directory"; }
+    local -n arr_name="$2"  
+    mapfile -t -d '' arr_name < <(find "$directory" -mindepth 1 -type f  -name "*.log" -print0 2> /dev/null)
+    if [[ ${#arr_name[@]} -eq 0 ]]; then
+        inform "No file found in $directory"
+        return "$ERROR_NO_LOG"
+    fi
+    return 0
 }
 
 see_files() {
