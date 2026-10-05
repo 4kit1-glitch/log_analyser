@@ -18,21 +18,47 @@ export DATE
 export PROG_NAME
 export PROG_LOGS_DIR=${PROG_LOGS_DIR:-"$HOME/.local/state/$PROG_NAME/logs"}
 
-lib_path="$SCRIPT_DIR/lib"
-tests_path="$SCRIPT_DIR/tests"
 
 export AI_ENABLED=0    # 0 for false | * ~ 1 for pass
 export LOG_PATH=""
+export ALL_FILES=()
 
+
+# error codes
+readonly ERROR_WARNING=1
+readonly ERROR_FATAL=2
+readonly ERROR_OK=0
+readonly ERROR_USAGE=3
+
+# file paths
+readonly lib_path="$SCRIPT_DIR/lib"
+readonly tests_path="$SCRIPT_DIR/tests"
+
+
+launch_prompt() {
+    read -rp "enter logs directory: " LOG_PATH || {
+        error "read log path from prompt failed"
+        exit $ERROR_USAGE
+    }
+
+    read -rp "enable AI-assisted verdict? (y/n): " ai_choice || {
+        error "read AI choice from prompt failed"
+        exit $ERROR_USAGE
+    }
+
+    [[ "$ai_choice" =~ ^[Yy]$ ]] && AI_ENABLED=1 || AI_ENABLED=0
+}
 # source library scripts
 for script in "$lib_path"/*; do
-    echo "$script"
-    source "$script"
+    source "$script" || {
+        error "failed to source $script"
+        exit $ERROR_USAGE
+    }
 done
 
-
 main() {
-    parse_args "$@"
+    parse_args "$@" || { error "flag parsing failed"; }
+    validate_dir "$LOG_PATH" || { error "failed to validate $LOG_PATH"; }
 }
 
 main "$@"
