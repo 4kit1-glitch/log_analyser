@@ -16,6 +16,7 @@ SCRIPT_DIR=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)
 export SCRIPT_DIR
 export DATE
 export PROG_NAME
+export LOGS_DIR=${LOGS_DIR:-"$HOME/.local/state/$PROG_NAME/logs"}
 
 lib_path="$SCRIPT_DIR/lib"
 tests_path="$SCRIPT_DIR/tests"
