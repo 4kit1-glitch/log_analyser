@@ -13,6 +13,7 @@ inform() {
 }
 
 see_log() {
+    clear
     cat "$current_log_file" || {
         echo "failed to see logs $current_log_file" >&2
         error "failed to see logs $current_log_file"
