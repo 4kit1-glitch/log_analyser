@@ -6,6 +6,12 @@
 
 get_dir() { printf "%s" "$(readlink -f "$LOG_PATH")"; }
 
+create_dir() {
+    dir_path=$1
+    mkdir -p "$dir_path" && inform "create directory $dir_path"
+    return $?
+}
+
 validate_dir() {
     local dir="$1"
 
