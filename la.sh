@@ -25,10 +25,10 @@ export ALL_FILES=()
 
 
 # error codes
-readonly ERROR_WARNING=1
-readonly ERROR_FATAL=2
-readonly ERROR_OK=0
-readonly ERROR_USAGE=3
+export ERROR_WARNING=1
+export ERROR_FATAL=2
+export ERROR_OK=0
+export ERROR_USAGE=3
 
 # file paths
 readonly lib_path="$SCRIPT_DIR/lib"
