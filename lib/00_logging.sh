@@ -3,7 +3,7 @@
 #
 # script 
 
-current_log_file="$PROG_LOG_DIR_$DATE.log"
+current_log_file="$PROG_LOGS_DIR"_$DATE".log"
 error() {
     echo "[ERROR] -- [$DATE] $1" >> "$current_log_file"
 }
