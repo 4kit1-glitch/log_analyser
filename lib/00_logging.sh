@@ -11,3 +11,10 @@ error() {
 inform() {
     echo "[INFO] -- [$DATE] $1" >> "$current_log_file"
 }
+
+see_log() {
+    cat "$current_log_file" || {
+        echo "failed to see logs $current_log_file" >&2
+        error "failed to see logs $current_log_file"
+    }
+}
