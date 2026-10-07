@@ -16,7 +16,6 @@ readonly HEALTHY_KEYWORDS="healthy|okay|pass|ok|done"
 readonly log_file="$1"
 
 get_first_two_lines() {
-    log_file="$1"
     head -n 2 "$log_file"
 }
 
