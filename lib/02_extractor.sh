@@ -38,7 +38,7 @@ get_last_two_lines() {
 
 get_message_from_line() {
     line="$1"
-    awk -F":" '{print $2}' <<< "$line"
+    awk -F": " '{print $2}' <<< "$line"
 }
 
 parse_line() {
