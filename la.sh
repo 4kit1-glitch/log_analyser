@@ -18,7 +18,7 @@ export DATE
 export PROG_NAME
 export PROG_LOGS_DIR=${PROG_LOGS_DIR:-"$HOME/.local/state/$PROG_NAME/logs"}
 
-
+# form user
 export AI_ENABLED=0    # 0 for false | * ~ 1 for pass
 export LOG_PATH=""
 export ALL_FILES=()
@@ -29,6 +29,21 @@ export ERROR_WARNING=1
 export ERROR_FATAL=2
 export ERROR_OK=0
 export ERROR_USAGE=3
+export ERROR_NO_LOG=4
+
+
+# log specific vars
+export BAD_LOGS_COUNT=0         # logs that could not be read
+export EMPTY_LOGS=0             # logs completely empty
+
+
+# Severity keywords
+readonly FATAL_KEYWORDS="fatal|emerg|panic"
+readonly ERROR_KEYWORDS="error|fail|failed|failure"
+readonly WARN_KEYWORDS="warn|warning|deprecated"
+readonly HEALTHY_KEYWORDS="healthy|okay|pass|ok|done"
+
+
 
 # file paths
 readonly lib_path="$SCRIPT_DIR/lib"
@@ -48,6 +63,7 @@ launch_prompt() {
 
     [[ "$ai_choice" =~ ^[Yy]$ ]] && AI_ENABLED=1 || AI_ENABLED=0
 }
+
 # source library scripts
 for script in "$lib_path"/*; do
     source "$script" || {
@@ -57,8 +73,9 @@ for script in "$lib_path"/*; do
 done
 
 main() {
-    parse_args "$@" || { error "flag parsing failed"; }
-    validate_dir "$LOG_PATH" || { error "failed to validate $LOG_PATH"; }
+    parse_args "$@"
+    validate_dir "$LOG_PATH" || {
+        echo "Failed to open: $LOG_PATH, run with sudo or verify permision" >&2
+        return "$ERROR_USAGE"
+    }
 }
-
-main "$@"
