@@ -27,21 +27,23 @@ validate_file() {
 }
 
 get_first_two_lines() {
-    log_file="$1"
+    local log_file="$1"
     head -n 2 "$log_file"
 }
 
 get_last_two_lines() {
-    log_file="$1"
+    local log_file="$1"
     tail -n 2 "$log_file"
 }
 
-get_message_from_line() {
-    line="$1"
-    awk -F": " '{print $2}' <<< "$line"
-}
-
 parse_line() {
-    line="$1"
-    awk '{printf "%s|%s|%s|%s",$1,$2,$3,$4}' <<< "$line"
+  local line="$1"
+  awk '{
+    date=$1; time=$2;
+    level=$3; gsub(/[\[\]]/, "", level);
+    logger=$4; gsub(/:$/, "", logger);
+    $1=$2=$3=$4="";
+    sub(/^ +/, "");
+    printf "%s|%s|%s|%s|%s\n", date, time, level, logger, $0
+  }' <<< "$line"
 }
