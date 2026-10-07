@@ -7,13 +7,6 @@
 # umn mot all functions handle thier own errors only critical ones do 
 # this is so that it returns its own exit code 
 
-# Severity keywords
-readonly FATAL_KEYWORDS="fatal|emerg|panic"
-readonly ERROR_KEYWORDS="error|fail|failed|failure"
-readonly WARN_KEYWORDS="warn|warning|deprecated"
-readonly HEALTHY_KEYWORDS="healthy|okay|pass|ok|done"
-
-
 validate_file() {
   local file="$1"
 
