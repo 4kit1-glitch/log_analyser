@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-VERSION="1.0.0"
+export VERSION="1.0.0"
 PROG_NAME="$(basename "$0")" 
 
 DATE="$(date +%Y_%m_%d)"
@@ -42,6 +42,11 @@ readonly FATAL_KEYWORDS="fatal|emerg|panic"
 readonly ERROR_KEYWORDS="error|fail|failed|failure"
 readonly WARN_KEYWORDS="warn|warning|deprecated"
 readonly HEALTHY_KEYWORDS="healthy|okay|pass|ok|done"
+
+export FATAL_KEYWORDS
+export ERROR_KEYWORDS
+export WARN_KEYWORDS
+export HEALTHY_KEYWORDS
 
 
 
