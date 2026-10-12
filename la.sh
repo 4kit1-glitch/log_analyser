@@ -40,7 +40,7 @@ export EMPTY_LOGS=0             # logs completely empty
 # Severity keywords
 readonly FATAL_KEYWORDS="fatal|emerg|panic"
 readonly ERROR_KEYWORDS="error|fail|failed|failure"
-readonly WARN_KEYWORDS="warn|warning|deprecated"
+readonly WARN_KEYWORDS="warn|warning|deprecated|debug"
 readonly HEALTHY_KEYWORDS="healthy|okay|pass|ok|done"
 
 export FATAL_KEYWORDS
