@@ -53,6 +53,11 @@ export HEALTHY_KEYWORDS
 # file paths
 readonly lib_path="$SCRIPT_DIR/lib"
 readonly tests_path="$SCRIPT_DIR/tests"
+readonly feat_path="$SCRIPT_DIR/feat"
+
+export lib_path
+export tests_path
+export feat_path
 
 
 launch_prompt() {
@@ -84,3 +89,5 @@ main() {
         return "$ERROR_USAGE"
     }
 }
+
+compress_log "/home/kit/Desktop/log_analyser/tests/test_files/MIXED221.log"
