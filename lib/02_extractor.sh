@@ -28,15 +28,3 @@ get_last_two_lines() {
     local log_file="$1"
     tail -n 2 "$log_file"
 }
-
-parse_line() {
-  local line="$1"
-  awk '{
-    date=$1; time=$2;
-    level=$3; gsub(/[\[\]]/, "", level);
-    logger=$4; gsub(/:$/, "", logger);
-    $1=$2=$3=$4="";
-    sub(/^ +/, "");
-    printf "%s|%s|%s|%s|%s\n", date, time, level, logger, $0
-  }' <<< "$line"
-}
