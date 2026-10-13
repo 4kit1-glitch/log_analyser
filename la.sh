@@ -59,6 +59,15 @@ export lib_path
 export tests_path
 export feat_path
 
+# temp file
+TMP_FILE=""
+export TMP_FILE
+
+init_tmp() {
+    TMP_FILE="$(mktemp)"
+    readonly TMP_FILE
+    trap 'rm -f "$TMP_FILE"' EXIT
+}
 
 launch_prompt() {
     read -rp "enter logs directory: " LOG_PATH || {
@@ -83,7 +92,13 @@ for script in "$lib_path"/*; do
 done
 
 main() {
+    init_tmp || {
+        echo "Failed to create temp file"
+        return "$ERROR_USAGE"
+    }
+
     parse_args "$@"
+
     validate_dir "$LOG_PATH" || {
         echo "Failed to open: $LOG_PATH, run with sudo or verify permision" >&2
         return "$ERROR_USAGE"
