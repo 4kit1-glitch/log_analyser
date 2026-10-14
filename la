@@ -123,3 +123,7 @@ main() {
 
     # move the compressed log to the file
 }
+
+compress_log /home/kit/Desktop/log_analyser/tests/test_files/MIXED221.log
+
+get_ai_overview
