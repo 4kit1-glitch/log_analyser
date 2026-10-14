@@ -102,79 +102,157 @@ _parse_ai_response() {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 get_ai_overview() {
+    local dep
+    for dep in curl jq; do
+        command -v "$dep" &>/dev/null ||
+            { _ai_fail "missing dependency: $dep" "$dep is required for the AI step"; return 3; }
+    done
+ 
+    if (( ${#_compressed_log[@]} == 0 )); then
+        _ai_fail "nothing to analyse (_compressed_log is empty)" "no log content to send"
+        return 3
+    fi
+ 
     if ! is_online; then
-        error "AI: no internet connection"
-        echo "ERROR: no internet connection" >&2
+        _ai_fail "no internet connection" "no internet connection"
         return 3
     fi
-
-    local api_url api_key
-    read -rp "API URL [Enter for Gemini Flash default]: " api_url
-    api_url="${api_url:-$GEMINI_DEFAULT_URL}"
-    read -rp "API key: " api_key
-    sleep 1
-    clear
+ 
+    # ---- settings: environment first, otherwise ask ----
+    local api_url="${AI_API_URL:-}" model="${AI_MODEL:-}" api_key="${AI_API_KEY:-}"
+ 
+    if [[ -z "$api_url" ]]; then
+        read -rp "API URL [Enter for Gemini Flash default]: " api_url
+        api_url="${api_url:-$GEMINI_DEFAULT_URL}"
+    fi
+ 
+    local format
+    format=$(_ai_format "$api_url")
+ 
+    if [[ "$format" == openai && -z "$model" ]]; then
+        read -rp "Model name: " model
+        [[ -n "$model" ]] || { _ai_fail "no model name given" "no model name given"; return 3; }
+    fi
+ 
     if [[ -z "$api_key" ]]; then
-        error "AI: no API key given"
-        echo "ERROR: no API key given" >&2
+        read -rsp "API key: " api_key
+        echo
+    fi
+    [[ -n "$api_key" ]] || { _ai_fail "no API key given" "no API key given"; return 3; }
+ 
+    # the key goes into a curl config file, so these would break its syntax
+    if [[ "$api_key" == *[\"\\]* ]]; then
+        _ai_fail "api key contains a quote or backslash" "that API key looks wrong"
         return 3
     fi
-
+ 
+    local auth
+    if [[ "$format" == gemini ]]; then
+        auth="x-goog-api-key: $api_key"
+    else
+        auth="Authorization: Bearer $api_key"
+    fi
+ 
     local payload
-    payload=$(_build_payload) || {
-        unset api_key
-        error "AI: failed to build payload"
-        echo "ERROR: failed to build payload" >&2
+    payload=$(_build_payload "$format" "$model") && [[ -n "$payload" ]] || {
+        _ai_fail "failed to build payload" "failed to build the request"
         return 3
     }
-
-    local raw http_code body
-    raw=$(curl -s -w "\n%{http_code}" --max-time 120 \
-        --config <(printf 'header = "x-goog-api-key: %s"\n' "$api_key") \
-        -H "Content-Type: application/json" \
-        -X POST \
-        -d "$payload" \
-        "$api_url") || {
-        unset api_key
-        error "AI: curl request failed"
-        echo "ERROR: request failed (network or timeout)" >&2
+ 
+    # ---- request, with retries for failures that can pass on their own ----
+    local raw rc http_code body attempt retryable began=$SECONDS why
+ 
+    for (( attempt = 1; attempt <= AI_MAX_ATTEMPTS; attempt++ )); do
+        raw=$(curl -sS -w '\n%{http_code}' \
+                --connect-timeout "$AI_CONNECT_TIMEOUT" --max-time "$AI_MAX_TIME" \
+                --config <(printf 'header = "%s"\n' "$auth") \
+                -H "Content-Type: application/json" \
+                --data-binary @- \
+                "$api_url" <<< "$payload")
+        rc=$?
+ 
+        http_code=000
+        body=""
+        if (( rc == 0 )); then
+            http_code=${raw##*$'\n'}
+            body=${raw%$'\n'*}
+        fi
+ 
+        (( rc == 0 && http_code == 200 )) && break
+ 
+        # transient problems are worth another try, the rest never are
+        retryable=0
+        if (( rc != 0 )); then
+            case $rc in 7|28|52|55|56) retryable=1 ;; esac
+            why="curl exit $rc"
+        else
+            case $http_code in 408|429|500|502|503|504) retryable=1 ;; esac
+            why="http $http_code"
+        fi
+ 
+        (( retryable && attempt < AI_MAX_ATTEMPTS )) || break
+        error "AI: attempt $attempt/$AI_MAX_ATTEMPTS failed ($why), retrying in $(( attempt * 3 ))s"
+        sleep $(( attempt * 3 ))
+    done
+ 
+    local took=$(( SECONDS - began ))
+ 
+    # ---- curl itself failed (no HTTP answer at all) ----
+    if (( rc != 0 )); then
+        case $rc in
+            3)     _ai_fail "curl exit 3 (malformed URL)" "the API URL is not valid" ;;
+            6)     _ai_fail "curl exit 6 (cannot resolve host)" "cannot find the server (no internet, or wrong URL)" ;;
+            7)     _ai_fail "curl exit 7 (connection refused)" "cannot connect to the server" ;;
+            28)    _ai_fail "curl exit 28 (timeout after ${took}s)" "the request timed out" ;;
+            35|60) _ai_fail "curl exit $rc (TLS problem)" "secure connection failed" ;;
+            *)     _ai_fail "curl exit $rc after ${took}s" "request failed (curl exit $rc)" ;;
+        esac
+        return 3
+    fi
+ 
+    # ---- the server answered with an error ----
+    if (( http_code != 200 )); then
+        local detail
+        detail=$(_ai_error_message "$body")
+        [[ -n "$detail" ]] && echo "provider said: $detail" >&2
+ 
+        case "$http_code" in
+            400) _ai_fail "http 400 ($detail)" "bad request (prompt too large, or wrong model name)" ;;
+            401|403) _ai_fail "http $http_code ($detail)" "API key rejected (or not allowed in your region)" ;;
+            404) _ai_fail "http 404 ($detail)" "URL or model name not found" ;;
+            413) _ai_fail "http 413 ($detail)" "prompt too large for this provider" ;;
+            429) _ai_fail "http 429 ($detail), gave up after $attempt attempts" "rate limit or quota reached, try later" ;;
+            5*)  _ai_fail "http $http_code ($detail), gave up after $attempt attempts" "the provider is overloaded or down, try later" ;;
+            *)   _ai_fail "http $http_code ($detail)" "unexpected answer (http $http_code)" ;;
+        esac
+        return 3
+    fi
+ 
+    # ---- 200 OK: make sure there is a usable answer ----
+    local text block
+    text=$(_ai_extract_text "$format" "$body")
+    if [[ -z "$text" ]]; then
+        block=$(printf '%s' "$body" |
+            jq -r '.promptFeedback.blockReason // .candidates[0].finishReason // empty' 2>/dev/null)
+        _ai_fail "empty answer (${block:-no reason given})" "the model returned no answer${block:+ ($block)}"
+        return 3
+    fi
+ 
+    _parse_ai_response "$text" || {
+        _ai_fail "answer was not the expected JSON: ${text:0:120}" "the model did not return a valid verdict"
         return 3
     }
-    unset api_key
-
-    http_code=$(printf '%s' "$raw" | tail -n 1)
-    body=$(printf '%s' "$raw" | sed '$d')
-
-    case "$http_code" in
-        200)     ;;
-        400)     error "AI: bad request (400)";        echo "ERROR: bad request" >&2;        return 3 ;;
-        401|403) error "AI: invalid api key ($http_code)"; echo "ERROR: invalid api key" >&2; return 3 ;;
-        429)     error "AI: rate limited (429)";       echo "ERROR: rate limited" >&2;       return 3 ;;
-        5*)      error "AI: server error ($http_code)"; echo "ERROR: server error" >&2;      return 3 ;;
-        000)     error "AI: connection failed";        echo "ERROR: connection failed" >&2;  return 3 ;;
-        *)       error "AI: http $http_code";          echo "ERROR: http $http_code" >&2;    return 3 ;;
-    esac
-
-    _parse_ai_response "$body"
 }
+
+
+
+
+
+
+
+
+
+
+
+
