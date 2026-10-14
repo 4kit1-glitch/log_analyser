@@ -38,7 +38,11 @@ export EMPTY_LOGS=0             # logs completely empty
 
 
 # Severity keywords
+
+readonly STARTUP_KEYWORDS="startup complete|initialized|ready|started"
+readonly STOP_KEYWORDS='shutting down|shutdown complete|stopped|graceful'
 readonly FATAL_KEYWORDS="fatal|emerg|panic"
+readonly CRITICAL_KEYWORDS="crit|critical|xtreme"
 readonly ERROR_KEYWORDS="error|fail|failed|failure"
 readonly WARN_KEYWORDS="warn|warning|deprecated|debug"
 readonly HEALTHY_KEYWORDS="healthy|okay|pass|ok|done"
@@ -47,6 +51,9 @@ export FATAL_KEYWORDS
 export ERROR_KEYWORDS
 export WARN_KEYWORDS
 export HEALTHY_KEYWORDS
+export STOP_KEYWORDS
+export STARTUP_KEYWORDS
+export CRITICAL_KEYWORDS
 
 
 
@@ -109,4 +116,14 @@ main() {
         echo "Failed to open: $LOG_PATH, run with sudo or verify permision" >&2
         return "$ERROR_USAGE"
     }
+
+    compress_log "$LOG_PATH" || {
+        echo "Error occured when compressing logs"
+        error "log compression failed"
+        return "$ERROR_USAGE"
+    }
+
+    # move the compressed log to the file
 }
+
+analyse_log /home/kit/Desktop/log_analyser/tests/test_files/BAD.log
