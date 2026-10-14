@@ -13,12 +13,53 @@
 #   _parse_ai_response
 #
 
-readonly GEMINI_DEFAULT_URL="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-
-
+readonly GEMINI_DEFAULT_URL="https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"
+readonly AI_MAX_ATTEMPTS=3
+readonly AI_CONNECT_TIMEOUT=10
+readonly AI_MAX_TIME=120
+ 
+ 
 is_online() {
-    ping -c 1 -W 2 1.1.1.1 &>/dev/null
+    # ping can be blocked, so fall back to a short HTTPS connect
+    ping -c 1 -W 2 1.1.1.1 &>/dev/null || curl -s -o /dev/null --max-time 3 https://1.1.1.1
 }
+
+
+# handle logging and a failing ai request
+_ai_fail() {
+    error "AI: $1"
+    echo "ERROR: $2" >&2
+    return 3
+}
+
+# handles the format sent by the url 
+_ai_format() {
+    case "$1" in
+        *:generateContent*) echo gemini ;;
+        *)                  echo openai ;;
+    esac
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 _build_payload() {
@@ -77,9 +118,9 @@ get_ai_overview() {
     local api_url api_key
     read -rp "API URL [Enter for Gemini Flash default]: " api_url
     api_url="${api_url:-$GEMINI_DEFAULT_URL}"
-
-    read -rsp "API key: " api_key
-    echo
+    read -rp "API key: " api_key
+    sleep 1
+    clear
     if [[ -z "$api_key" ]]; then
         error "AI: no API key given"
         echo "ERROR: no API key given" >&2
@@ -95,7 +136,7 @@ get_ai_overview() {
     }
 
     local raw http_code body
-    raw=$(curl -s -w "\n%{http_code}" --max-time 30 \
+    raw=$(curl -s -w "\n%{http_code}" --max-time 120 \
         --config <(printf 'header = "x-goog-api-key: %s"\n' "$api_key") \
         -H "Content-Type: application/json" \
         -X POST \
