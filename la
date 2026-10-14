@@ -21,7 +21,7 @@ export PROG_LOGS_DIR=${PROG_LOGS_DIR:-"$HOME/.local/state/$PROG_NAME/logs"}
 # form user
 export AI_ENABLED=0    # 0 for false | * ~ 1 for pass
 export LOG_PATH=""
-export ALL_FILES=()
+ALL_FILES=()
 
 
 # error codes
@@ -103,27 +103,40 @@ for script in "$lib_path"/*; do
 done
 
 main() {
-    init_tmp || {
-        echo "Failed to create temp file"
-        return "$ERROR_USAGE"
-    }
-
+    mkdir -p "$PROG_LOGS_DIR"
+    init_tmp
     parse_args "$@"
+    [[ -n "$LOG_PATH" ]] || launch_prompt
+    validate_dir "$LOG_PATH" || return "$ERROR_USAGE"
+    get_log_files "$LOG_PATH" ALL_FILES || return "$ERROR_NO_LOG"
 
-    validate_dir "$LOG_PATH" || {
-        echo "Failed to open: $LOG_PATH, run with sudo or verify permision" >&2
-        return "$ERROR_USAGE"
-    }
+    tui_init
+    tui_header
 
-    compress_log "$LOG_PATH" || {
-        echo "Error occured when compressing logs"
-        error "log compression failed"
-        return "$ERROR_USAGE"
-    }
+    local i=0 total=${#ALL_FILES[@]} file last
+    for file in "${ALL_FILES[@]}"; do
+        (( ++i ))
+        tui_compress_progress "$i" "$total" "$(basename "$file")" "compressing..."
+        compress_log "$file"
+        last=""
+        (( ${#_compressed_log[@]} > 0 )) && last="${_compressed_log[-1]}"
+        tui_compress_progress "$i" "$total" "$(basename "$file")" "$last"
+    done
+    tui_compress_end
 
-    # move the compressed log to the file
+    local manual_out=""
+    for file in "${ALL_FILES[@]}"; do
+        manual_out+=$(analyse_log "$file")$'\n'
+    done
+    tui_manual "$manual_out"
+
+    if (( AI_ENABLED )); then
+        local ai_out ai_rc=0
+        ai_out=$(get_ai_overview) || ai_rc=$?
+        tui_ai "$ai_out" "$ai_rc"
+    fi
+
+    tui_footer
 }
 
-compress_log /home/kit/Desktop/log_analyser/tests/test_files/MIXED221.log
-
-get_ai_overview
+main "$@"
