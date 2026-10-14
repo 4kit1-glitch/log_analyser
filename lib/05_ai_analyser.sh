@@ -46,55 +46,48 @@ _ai_error_message() {
         head -c 200
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 _build_payload() {
-    local prompt escaped
+    local format="$1" model="$2" prompt
+ 
     prompt=$(cat <<PROMPT_EOF
 You are analyzing a compressed log file. Determine the system state.
-
+ 
 Return ONLY a JSON object. No prose. No markdown. No code fences.
 {"verdict":"OK|WARNING|CRITICAL","confidence":"low|medium|high","reason":"one sentence","suggestion":"one action"}
-
+ 
 Log content:
 $(printf '%s\n' "${_compressed_log[@]}")
 PROMPT_EOF
     )
-
-    escaped=$(printf '%s' "$prompt" | awk '
-        BEGIN { ORS="" }
-        {
-            gsub(/\\/, "\\\\")
-            gsub(/"/,  "\\\"")
-            gsub(/\t/, "\\t")
-            gsub(/\r/, "")
-            if (NR > 1) print "\\n"
-            print
-        }
-    ')
-
-    printf '{"contents":[{"parts":[{"text":"%s"}]}],"generationConfig":{"responseMimeType":"application/json"}}' "$escaped"
+ 
+    if [[ "$format" == gemini ]]; then
+        printf '%s' "$prompt" | jq -Rs \
+            '{contents:[{parts:[{text:.}]}],generationConfig:{responseMimeType:"application/json"}}'
+    else
+        printf '%s' "$prompt" | jq -Rs --arg m "$model" \
+            '{model:$m,messages:[{role:"user",content:.}]}'
+    fi
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 _parse_ai_response() {
