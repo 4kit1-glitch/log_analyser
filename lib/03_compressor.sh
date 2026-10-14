@@ -1,50 +1,58 @@
 #!/usr/bin/env bash
-#
+# shellcheck disable=2154
 # line compression algorithm and line merger
 #
 
-_current_sig=""      # level + signature (e.g., "WARN|cache: redis latency")
-_current_start=""    # timestamp of first line in range
-_current_end=""      # timestamp of last line in range
-_current_logger=""   # logger of the range
-_current_level=""    # WARN / ERROR / FATAL
-_current_count=0     # how many lines in this range
-_current_msg=""
 
-declare -a _compressed_log=()
 
-set_vars() {
-    # sets the global vars at command so i dont lose track of where i am at
-    local line_vars="$1"
-    local d t lv lg msg # date, time , level , logger, message i ran out of names ^..^
-    IFS="|" read -r d t lv lg msg <<< "$line_vars"
-
-    # set the global vars
-    _current_start="$d $t"
-    _current_level="$lv"
-    _current_logger="$lg"
-    _current_msg="$msg"
-    _current_sig="$_current_level|$_current_logger"
-}
-
-is_same_sig() {
-    [[ "$1|$2" == "$_current_sig" ]]
+emit_range() {
+    # func fills the compressed array with the right log format
+    local start="$1" end="$2" level="$3" logger="$4" msg="$5" count="$6"
+    if (( count == 1 )); then
+        _compressed_log+=("$start|$level|$logger|$msg")
+    else
+        _compressed_log+=("$start - $end|$level|$logger|$msg x$count")
+    fi
 }
 
 compress_log() {
     local log_file="$1"
-    local line_num=0
+    local dt tm level logger msg sig    # dt and tm short for date and time
+    local cur_sig="" cur_start="" cur_end=""
+    local cur_level="" cur_logger="" cur_msg="" cur_count=0
+
     validate_file "$log_file" || {
         error "failed to open $log_file"
         return 3
     }
 
-    # loop though the lines
-    while IFS="" read -r line; do
-        (( line_num++ ))
-        echo "flss $line"
-    done < "$log_file"
-    echo
-    echo "$line_num"
-}
+    while IFS="|" read -r dt tm level logger msg; do
+        sig="$level|$logger|$msg"
+       # echo $sig
 
+        # same signature as the open range: extend it
+        if (( cur_count > 0 )) && [[ "$sig" == "$cur_sig" ]]; then
+            cur_end="$dt $tm"
+            cur_count=$(( cur_count + 1 ))
+            continue
+        fi
+
+        # different signature: save the old range first, then start a new one
+        if (( cur_count > 0 )); then
+            emit_range "$cur_start" "$cur_end" "$cur_level" "$cur_logger" "$cur_msg" "$cur_count"
+        fi
+
+        cur_sig="$sig"
+        cur_start="$dt $tm"
+        cur_end="$dt $tm"
+        cur_level="$level"
+        cur_logger="$logger"
+        cur_msg="$msg"
+        cur_count=1
+    done < <(awk -f "$feat_path/lineparser.awk" "$log_file")
+
+    # the loop ends with one range still open
+    if (( cur_count > 0 )); then
+        emit_range "$cur_start" "$cur_end" "$cur_level" "$cur_logger" "$cur_msg" "$cur_count"
+    fi
+}
