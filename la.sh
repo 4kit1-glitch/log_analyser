@@ -59,6 +59,12 @@ export lib_path
 export tests_path
 export feat_path
 
+
+declare -a _compressed_log=()
+
+export _compressed_log
+
+
 # temp file
 TMP_FILE=""
 export TMP_FILE
@@ -104,5 +110,3 @@ main() {
         return "$ERROR_USAGE"
     }
 }
-
-compress_log "/home/kit/Desktop/log_analyser/tests/test_files/MIXED221.log"
