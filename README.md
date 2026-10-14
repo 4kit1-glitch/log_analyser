@@ -7,6 +7,23 @@ This tool is designed for operational triage: it helps answer questions such as 
 
 ---
 
+---
+
+## Demo pictures
+
+
+### Placeholder gallery
+<img width="1290" height="689" alt="image" src="https://github.com/user-attachments/assets/9d617bc8-3322-4b58-81f4-ab5ed57d6739" />
+
+---
+
+<img width="1366" height="141" alt="Screenshot From 2026-10-14 13-52-29" src="https://github.com/user-attachments/assets/f20ed919-6f5c-405f-a7e6-5c8a377b52f7" />
+
+---
+<img width="652" height="275" alt="Screenshot From 2026-10-14 13-31-34" src="https://github.com/user-attachments/assets/44c7664f-9f50-4188-a0a6-a033473b0145" />
+
+
+---
 ## Overview
 
 The project reads one or more log files from a directory, normalizes their entries, and then inspects the sequence of events to determine whether the system is:
@@ -257,32 +274,6 @@ log_analyser/
         ├── tui.png
         └── verdict.png
 ```
-
-> The docs/demo directory is a placeholder for future screenshots and project examples.
-
----
-
-## Demo pictures
-
-This project is ready for visual documentation. Add screenshots here as the project evolves.
-
-### Placeholder gallery
-
-```text
-![Demo overview placeholder](docs/demo/overview.png)
-![TUI placeholder](docs/demo/tui.png)
-![Verdict output placeholder](docs/demo/verdict.png)
-```
-
-These placeholders are intended for future UI and output snapshots, such as:
-
-- directory scan overview,
-- terminal output in normal mode,
-- AI verdict summary,
-- and examples of healthy vs critical verdicts.
-
----
-
 ## Running the project
 
 From the repository root:
