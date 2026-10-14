@@ -246,11 +246,11 @@ log_analyser/
 │   │   └── WARN.log
 │   ├── test_results/
 │   │   ├── log_generator.py
-│   │   ├── test.awk
-│   │   ├── t.sh
-│   │   ├── ttt.sh
-│   │   └── tt.sh
-│   └── ...
+│   │   
+│   │   
+│   │   
+│   │   
+│   └── 
 └── docs/
     └── demo/
         ├── overview.png
