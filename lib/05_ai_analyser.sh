@@ -59,7 +59,8 @@ Log content:
 $(printf '%s\n' "${_compressed_log[@]}")
 PROMPT_EOF
     )
- 
+    
+    # this handles the check
     if [[ "$format" == gemini ]]; then
         printf '%s' "$prompt" | jq -Rs \
             '{contents:[{parts:[{text:.}]}],generationConfig:{responseMimeType:"application/json"}}'
@@ -69,6 +70,15 @@ PROMPT_EOF
     fi
 }
 
+
+# $1 = format, $2 = body. Prints the model's text, or nothing.
+_ai_extract_text() {
+    if [[ "$1" == gemini ]]; then
+        printf '%s' "$2" | jq -r '.candidates[0].content.parts[0].text // empty' 2>/dev/null
+    else
+        printf '%s' "$2" | jq -r '.choices[0].message.content // empty' 2>/dev/null
+    fi
+}
 
 
 
