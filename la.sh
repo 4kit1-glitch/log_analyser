@@ -69,8 +69,6 @@ export feat_path
 
 declare -a _compressed_log=()
 
-export _compressed_log
-
 
 # temp file
 TMP_FILE=""
@@ -125,5 +123,3 @@ main() {
 
     # move the compressed log to the file
 }
-
-analyse_log /home/kit/Desktop/log_analyser/tests/test_files/BAD.log
