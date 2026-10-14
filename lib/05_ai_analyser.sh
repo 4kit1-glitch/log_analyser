@@ -40,6 +40,12 @@ _ai_format() {
     esac
 }
 
+_ai_error_message() {
+    printf '%s' "$1" |
+        jq -r '.error.message? // .error? // .message? // empty' 2>/dev/null |
+        head -c 200
+}
+
 
 
 
