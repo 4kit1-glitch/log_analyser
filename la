@@ -139,4 +139,6 @@ main() {
     tui_footer
 }
 
-main "$@"
+main "$@" || {
+    echo "PROGRAM FAILED SEE LOGS $PROG_LOGS_DIR"
+}
