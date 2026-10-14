@@ -80,41 +80,46 @@ _ai_extract_text() {
     fi
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 _parse_ai_response() {
-    local raw="$1"
     local clean verdict confidence reason suggestion
-
-    clean=$(printf '%s' "$raw" | sed -e 's/\\"/"/g' -e 's/\\n/\n/g')
-
-    verdict=$(   grep -oP '"verdict":\s*"\K[^"]+'    <<< "$clean" | head -1)
-    confidence=$(grep -oP '"confidence":\s*"\K[^"]+' <<< "$clean" | head -1)
-    reason=$(    grep -oP '"reason":\s*"\K[^"]+'     <<< "$clean" | head -1)
-    suggestion=$(grep -oP '"suggestion":\s*"\K[^"]+' <<< "$clean" | head -1)
-
+ 
+    # some models ignore "no code fences": drop any fence lines
+    clean=$(printf '%s\n' "$1" | grep -v '^[[:space:]]*```')
+ 
+    verdict=$(   jq -r '.verdict    // empty' <<< "$clean" 2>/dev/null)
+    confidence=$(jq -r '.confidence // empty' <<< "$clean" 2>/dev/null)
+    reason=$(    jq -r '.reason     // empty' <<< "$clean" 2>/dev/null)
+    suggestion=$(jq -r '.suggestion // empty' <<< "$clean" 2>/dev/null)
+ 
+    case "${verdict^^}" in
+        OK|WARNING|CRITICAL) ;;
+        *) return 1 ;;
+    esac
+ 
     printf "verdict: %s\nconfidence: %s\nreason: %s\nsuggestion: %s\n" \
-        "${verdict:-unknown}" "${confidence:-unknown}" \
-        "${reason:-unknown}"  "${suggestion:-unknown}"
+        "${verdict^^}" "${confidence:-unknown}" \
+        "${reason:-unknown}" "${suggestion:-unknown}"
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 get_ai_overview() {
