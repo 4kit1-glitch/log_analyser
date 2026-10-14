@@ -1,23 +1,52 @@
-# analyser.awk - manual log analyser, one pass over the log.
+# manualanalyser.awk - manual log analyser, one pass over the log.
 #
 # Log format assumed:  DATE TIME [LEVEL] logger: message
 #
-# Expected -v variables (set by analyse_log.sh):
-#   start_kw  regex for a startup message   head_n  lines checked for startup
-#   stop_kw   regex for a shutdown message  tail_n  lines checked for shutdown
+# Expected -v variables (set by manualanalyser.sh):
+#   STARTUP_KEYWORDS  regex, startup message (matched on the message)
+#   STOP_KEYWORDS     regex, shutdown message (matched on the message)
+#   FATAL_KEYWORDS    regex, matched on the LEVEL token only
+#   ERROR_KEYWORDS    regex, matched on the LEVEL token only
+#   WARN_KEYWORDS     regex, matched on the LEVEL token only
+#   head_n / tail_n   lines checked for startup / shutdown
 #
+# Severity is read from the level token, never from the message, so a
+# message like "Failed with result" on an INFO line is not counted as an error.
+
 function dn(y, m, d) {            # day number, handles month/year rollover
     if (m < 3) { y--; m += 12 }
     return 365*y + int(y/4) - int(y/100) + int(y/400) + int((153*(m-3)+2)/5) + d
 }
 
-NF == 0 { next }                  # skip blank lines
+function sev(l) {                 # FATAL / ERROR / WARN / OTHER
+    l = tolower(l)
+    if (l ~ fatal_re) return "FATAL"
+    if (l ~ error_re) return "ERROR"
+    if (l ~ warn_re)  return "WARN"
+    return "OTHER"
+}
 
-NF < 4 { unparsed++; next }       # lines that do not fit the format
+BEGIN {
+    start_re = tolower(STARTUP_KEYWORDS); stop_re  = tolower(STOP_KEYWORDS)
+    fatal_re = tolower(FATAL_KEYWORDS);   error_re = tolower(ERROR_KEYWORDS)
+    warn_re  = tolower(WARN_KEYWORDS)
+    if (start_re == "" || stop_re == "" || fatal_re == "" || error_re == "" || warn_re == "") {
+        print "manualanalyser.awk: a *_KEYWORDS variable is empty" > "/dev/stderr"
+        exit 2
+    }
+    if (head_n + 0 < 1 || tail_n + 0 < 1) {
+        print "manualanalyser.awk: head_n and tail_n must be >= 1" > "/dev/stderr"
+        exit 2
+    }
+}
+
+NF == 0 { next }                  # skip blank lines
+NF < 4  { unparsed++; next }      # lines that do not fit the format
 
 {
     n++                           # counts non-blank parsed lines
     level = $3; gsub(/[][]/, "", level)
+    s = sev(level)
     msg = $0
     sub(/^[^ ]+ +[^ ]+ +[^ ]+ +[^ ]+ +/, "", msg)
     low = tolower(msg)
@@ -27,39 +56,39 @@ NF < 4 { unparsed++; next }       # lines that do not fit the format
     if (n == 1) { first_t = t; first_ts = $1 " " $2 }
     last_t = t; last_ts = $1 " " $2
 
-    ring[n % tail_n] = $0         # keep the last tail_n lines
-    lvl_ring[n % tail_n] = level
+    ring[n % tail_n]     = $0     # keep the last tail_n lines
+    sev_ring[n % tail_n] = s
     low_ring[n % tail_n] = low
 }
 
 # ---- Q1: start ----
 n <= head_n && start_verdict == "" {
-    if (level == "INFO" && low ~ start_kw) {
+    if (s == "OTHER" && low ~ start_re) {
         start_verdict = "STARTED"; start_ev = $0
-    } else if (level == "ERROR" || level == "FATAL") {
+    } else if (s == "ERROR" || s == "FATAL") {
         start_verdict = "FAILED"; start_ev = $0
     }
 }
 
 # ---- Q2: warnings ----
-level == "WARN" {
+s == "WARN" {
     warns++
     wmin[substr($1 " " $2, 1, 16)]++
 }
 
 # ---- Q3: fatal and recovery (judged on the LAST fatal) ----
-level == "FATAL" {
+s == "FATAL" {
     fatals++
     fatal_line = $0
     after = 0; restarted = 0; errs_after_restart = 0; restart_line = ""
-    next_is_after = 1
-    next
+    seen_fatal = 1
+    next                          # the FATAL line itself is not "after" itself
 }
-next_is_after {
+seen_fatal {
     after++
-    if (!restarted && level == "INFO" && low ~ start_kw) {
+    if (!restarted && s == "OTHER" && low ~ start_re) {
         restarted = 1; restart_line = $0
-    } else if (restarted && (level == "ERROR" || level == "FATAL")) {
+    } else if (restarted && (s == "ERROR" || s == "FATAL")) {
         errs_after_restart++
     }
 }
@@ -106,7 +135,7 @@ END {
     # Q4
     closed = 0
     for (i = 0; i < tail_n; i++)
-        if (lvl_ring[i] == "INFO" && low_ring[i] ~ stop_kw) { closed = 1; stop_ev = ring[i] }
+        if (sev_ring[i] == "OTHER" && low_ring[i] ~ stop_re) { closed = 1; stop_ev = ring[i] }
     if (closed) {
         print "4. Shutdown: CLEAN"
         printf "     evidence: %s\n", stop_ev
