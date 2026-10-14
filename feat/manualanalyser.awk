@@ -6,6 +6,8 @@
 #   STARTUP_KEYWORDS  regex, startup message (matched on the message)
 #   STOP_KEYWORDS     regex, shutdown message (matched on the message)
 #   FATAL_KEYWORDS    regex, matched on the LEVEL token only
+#   CRITICAL_KEYWORDS regex, matched on the LEVEL token only (own class,
+#                     checked after FATAL, so keep these words out of FATAL_KEYWORDS)
 #   ERROR_KEYWORDS    regex, matched on the LEVEL token only
 #   WARN_KEYWORDS     regex, matched on the LEVEL token only
 #   head_n / tail_n   lines checked for startup / shutdown
@@ -18,9 +20,10 @@ function dn(y, m, d) {            # day number, handles month/year rollover
     return 365*y + int(y/4) - int(y/100) + int(y/400) + int((153*(m-3)+2)/5) + d
 }
 
-function sev(l) {                 # FATAL / ERROR / WARN / OTHER
+function sev(l) {                 # FATAL / CRITICAL / ERROR / WARN / OTHER
     l = tolower(l)
     if (l ~ fatal_re) return "FATAL"
+    if (l ~ crit_re)  return "CRITICAL"
     if (l ~ error_re) return "ERROR"
     if (l ~ warn_re)  return "WARN"
     return "OTHER"
@@ -29,8 +32,8 @@ function sev(l) {                 # FATAL / ERROR / WARN / OTHER
 BEGIN {
     start_re = tolower(STARTUP_KEYWORDS); stop_re  = tolower(STOP_KEYWORDS)
     fatal_re = tolower(FATAL_KEYWORDS);   error_re = tolower(ERROR_KEYWORDS)
-    warn_re  = tolower(WARN_KEYWORDS)
-    if (start_re == "" || stop_re == "" || fatal_re == "" || error_re == "" || warn_re == "") {
+    warn_re  = tolower(WARN_KEYWORDS);    crit_re  = tolower(CRITICAL_KEYWORDS)
+    if (start_re == "" || stop_re == "" || fatal_re == "" || crit_re == "" || error_re == "" || warn_re == "") {
         print "manualanalyser.awk: a *_KEYWORDS variable is empty" > "/dev/stderr"
         exit 2
     }
@@ -65,7 +68,7 @@ NF < 4  { unparsed++; next }      # lines that do not fit the format
 n <= head_n && start_verdict == "" {
     if (s == "OTHER" && low ~ start_re) {
         start_verdict = "STARTED"; start_ev = $0
-    } else if (s == "ERROR" || s == "FATAL") {
+    } else if (s == "ERROR" || s == "CRITICAL" || s == "FATAL") {
         start_verdict = "FAILED"; start_ev = $0
     }
 }
@@ -74,6 +77,13 @@ n <= head_n && start_verdict == "" {
 s == "WARN" {
     warns++
     wmin[substr($1 " " $2, 1, 16)]++
+}
+
+# ---- critical (own class, does not mean the process died) ----
+s == "CRITICAL" {
+    crits++
+    if (crits == 1) crit_first = $0
+    crit_last = $0
 }
 
 # ---- Q3: fatal and recovery (judged on the LAST fatal) ----
@@ -88,7 +98,7 @@ seen_fatal {
     after++
     if (!restarted && s == "OTHER" && low ~ start_re) {
         restarted = 1; restart_line = $0
-    } else if (restarted && (s == "ERROR" || s == "FATAL")) {
+    } else if (restarted && (s == "ERROR" || s == "CRITICAL" || s == "FATAL")) {
         errs_after_restart++
     }
 }
@@ -130,6 +140,15 @@ END {
         printf "3. Fatal:    %d found, last one: %s\n", fatals, v
         printf "     fatal:   %s\n", fatal_line
         if (restart_line != "") printf "     restart: %s\n", restart_line
+    }
+
+    # Critical (separate from the fatal check)
+    if (crits == 0) {
+        print "   Critical: none in this log"
+    } else {
+        printf "   Critical: %d found\n", crits
+        printf "     first: %s\n", crit_first
+        if (crits > 1) printf "     last:  %s\n", crit_last
     }
 
     # Q4
